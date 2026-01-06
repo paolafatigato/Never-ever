@@ -8,6 +8,8 @@ let candidates = [];
 let storyteller = null;
 let showInfinitive = false;
 let timerRunning = false;
+let unusedSentences = [];
+
 
 
 const screen = document.getElementById("screen");
@@ -24,6 +26,26 @@ toggleBtn.addEventListener('click', () => {
   toggleBtn.textContent = sidebar.classList.contains('hidden') ? '<' : '>';
 });
 
+function newGame() {
+  players.forEach(p => {
+    p.lives = 2;
+    p.eliminated = false;
+  });
+
+  unusedSentences = [];
+  candidates = [];
+  storyteller = null;
+  showInfinitive = false;
+  timerRunning = false;
+  clearInterval(timer);
+
+  phase = "welcome";
+  render();
+}
+
+const newGameBtn = document.getElementById("newGameBtn");
+newGameBtn.addEventListener("click", newGame);
+
 function render() {
   renderPlayers();
   renderScreen();
@@ -37,15 +59,32 @@ function renderScreen() {
     `;
   }
 
-  if (phase === "verb") {
-    screen.innerHTML = `
-      <div class="big">Never have I ever ___ (${currentSentence.infinitive}) ${currentSentence.complement}</div>
-      <div>${activePlayer.name}'s turn</div>
-      <div class="timer">${timeLeft}</div>
-      <input class="answer" id="answer">
-      <button onclick="checkAnswer()">Check</button>
-    `;
-  }
+if (phase === "verb") {
+  screen.innerHTML = `
+    <div class="verb-wrapper">
+      ${getVerbImageHTML(currentSentence.infinitive)}
+
+      <div class="big">
+        Never have I ever ___ ${currentSentence.complement}
+      </div>
+    </div>
+
+    ${
+      showInfinitive
+        ? `<p style="font-size:1.5rem">
+             Verb: <strong>${currentSentence.infinitive}</strong>
+           </p>`
+        : `<button onclick="revealInfinitive()">Show infinitive</button>`
+    }
+
+    ${
+      timerRunning
+        ? `<div class="timer">${timeLeft}</div>
+           <button onclick="checkAnswer()">Check</button>`
+        : `<button onclick="startTimerManual()">Start timer</button>`
+    }
+  `;
+}
 
 if (phase === "hands") {
   screen.innerHTML = `
@@ -122,31 +161,7 @@ if (phase === "story-result") {
     </button>
   `;
 }
-if (phase === "verb") {
-  screen.innerHTML = `
-    <div class="big">
-      Never have I ever ___ ${currentSentence.complement}
-    </div>
 
-    ${
-      showInfinitive
-        ? `<p style="font-size:1.5rem">
-             Verb: <strong>${currentSentence.infinitive}</strong>
-           </p>`
-        : `<button onclick="revealInfinitive()">
-             Show infinitive
-           </button>`
-    }
-
-    ${
-      timerRunning
-        ? `<div class="timer">${timeLeft}</div>`
-        : `<button onclick="startTimerManual()">
-             Start timer
-           </button>`
-    }
-  `;
-}
 
 
 }
@@ -155,7 +170,8 @@ function startRound() {
   const alive = players.filter(p => !p.eliminated);
   if (!alive.length) return;
 
-  currentSentence = sentences[Math.floor(Math.random() * sentences.length)];
+currentSentence = getRandomSentence();
+
   activePlayer = alive[Math.floor(Math.random() * alive.length)];
 
   showInfinitive = false;
@@ -164,6 +180,29 @@ function startRound() {
 
   phase = "verb";
   render();
+}
+
+function getRandomSentence() {
+  // se è vuoto, ricarica tutte le frasi
+  if (unusedSentences.length === 0) {
+    unusedSentences = [...sentences];
+  }
+
+  const index = Math.floor(Math.random() * unusedSentences.length);
+  return unusedSentences.splice(index, 1)[0];
+}
+
+function getVerbImageHTML(verb) {
+  const imgPath = `img/${verb}.png`;
+
+  return `
+    <img 
+      src="${imgPath}" 
+      class="verb-image"
+      onerror="this.remove()"
+      alt="${verb}"
+    >
+  `;
 }
 
 function startTimerManual() {
@@ -199,13 +238,12 @@ function revealInfinitive() {
 
 
 function checkAnswer() {
-  const val = document.getElementById("answer").value.trim().toLowerCase();
   clearInterval(timer);
-
-phase = "answer-shown";
-
+  timerRunning = false;
+  phase = "answer-shown";
   render();
 }
+
 
 function answerOk() {
   phase = "hands";
@@ -265,8 +303,6 @@ function storyResult(success) {
 }
 
 
-
-
 function gainLife(id) {
   const p = players.find(p=>p.id===id);
   if (p) p.lives = Math.min(5, p.lives+1);
@@ -307,22 +343,53 @@ function renderPlayers() {
     if (storyteller && p.id === storyteller.id) className += " storyteller";
     
     div.className = className;
-    div.innerHTML = `
-      <input 
-        class="player-name-input"
-        type="text"
-        value="${p.name}"
-        oninput="updatePlayerName(${p.id}, this.value)"
-      />
-      <div class="lives">
-        ${[0,1,2,3,4].map(i =>
-          `<div class="life ${i >= p.lives ? 'lost' : ''}"></div>`
-        ).join("")}
-      </div>
-    `;
+   div.innerHTML = `
+  <div class="player-header">
+    <input 
+      class="player-name-input"
+      type="text"
+      value="${p.name}"
+      oninput="updatePlayerName(${p.id}, this.value)"
+    />
+    <button 
+      class="remove-player-btn"
+      onclick="removePlayer(${p.id})"
+      aria-label="Remove player"
+    >✕</button>
+  </div>
+
+  <div class="lives">
+    ${[0,1,2,3,4].map(i =>
+      `<div 
+        class="life ${i >= p.lives ? 'lost' : ''}"
+        onclick="toggleLife(${p.id}, ${i})"
+      ></div>`
+    ).join("")}
+  </div>
+`;
+
     list.appendChild(div);
   });
 }
+
+function toggleLife(playerId, index) {
+  const player = players.find(p => p.id === playerId);
+  if (!player) return;
+
+  if (index < player.lives) {
+    // clic su vita attiva → togli
+    player.lives--;
+  } else {
+    // clic su vita persa → aggiungi
+    player.lives++;
+  }
+
+  player.lives = Math.max(0, Math.min(5, player.lives));
+  player.eliminated = player.lives === 0;
+
+  render();
+}
+
 
 function updatePlayerName(id, newName) {
   const player = players.find(p => p.id === id);
@@ -330,6 +397,31 @@ function updatePlayerName(id, newName) {
 
   player.name = newName.trim() || player.name;
 }
+
+function removePlayer(id) {
+  // rimuovi da players
+  players = players.filter(p => p.id !== id);
+
+  // pulizia stato
+  if (activePlayer?.id === id) activePlayer = null;
+  if (storyteller?.id === id) storyteller = null;
+  candidates = candidates.filter(cid => cid !== id);
+
+  // se non restano giocatori attivi, torna al welcome
+  if (!players.filter(p => !p.eliminated).length) {
+    phase = "welcome";
+  }
+
+  render();
+}
+
+
+screen.addEventListener("click", () => {
+  if (window.innerWidth <= 768 && !sidebar.classList.contains("hidden")) {
+    sidebar.classList.add("hidden");
+  }
+});
+
 
 function openInstructions() {
   instructionsModal.classList.remove("hidden");
