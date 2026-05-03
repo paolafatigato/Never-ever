@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Never Have I Ever – Present Perfect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- MAIN -->
+  <main class="game">
+
+    <header>
+      <h1>Never Have I Ever – Present Perfect</h1>
+      <button id="instructionsBtn">?</button>
+      <button id="newGameBtn">New Game</button>
+    </header>
+
+    <section id="screen" class="screen">
+      <!-- dinamico -->
+    </section>
+
+  </main>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+
+    <h2>Players</h2>
+
+    <div class="add-player">
+      <input id="playerName" placeholder="Player name">
+      <button onclick="addPlayer()">Add</button>
+    </div>
+
+    <div class="numbered">
+      <input type="number" id="fromN" value="1">
+      <span>-</span>
+      <input type="number" id="toN" value="23">
+      <button onclick="addNumbered()">Add numbers</button>
+    </div>
+
+    <div id="playerList" class="player-list"></div>
+  </aside>
+
+  
+<button id="toggleSidebar">&lt;</button>
+
+</div>
+
+<div id="instructionsModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeInstructions()">×</button>
+
+    <h2>How to play</h2>
+
+    <ol>
+      <li>A sentence appears: <em>Never have I ever ___ …</em></li>
+      <li>The infinitive is hidden. The teacher may reveal it if needed.</li>
+      <li>The timer starts only when the teacher clicks <strong>Start timer</strong>.</li>
+      <li>When the timer ends, the correct answer is shown.</li>
+      <li>The teacher decides if the answer is correct (✅) or wrong (❌).</li>
+      <li>Players who have done it raise their hand and are selected.</li>
+      <li>One storyteller is chosen and evaluated.</li>
+    </ol>
+
+    <p>
+      The first player to reach 5 lives, wins!
+    </p>
+  </div>
+</div>
+
+
+<script src="sentences.js"></script>
+<script src="script.js"></script>
+
+<footer class="app-footer">
+  Ms Fatigato
+</footer>
+</body>
+</html>
